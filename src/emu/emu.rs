@@ -24,7 +24,7 @@ pub struct Chip8 {
     memory: [u8; 4096],
     registers: [u8; 16],
     index: u16, // Index register
-    pc: u16, // Program counter
+    pc: usize, // Program counter
     gfx: [u8; 2048], // Pixel values (64 x 32 screen)
 
     // When set > zero, these timer registers will count down to zero
@@ -85,6 +85,80 @@ impl Chip8 {
         self.sound_timer = 0;
 
         self.fontset_into_mem();
+    }
+
+    pub fn cycle(&mut self) {
+
+        // Get next opcode.
+        self.opcode = (self.memory[self.pc] as u16) << 8 | self.memory[self.pc + 1] as u16;
+
+        // Decode opcode.
+        match self.opcode & 0xF000 {
+            0x0000 => match self.opcode & 0x000F {
+                // Clear Screen
+                0x0000 => {},
+
+                // Return from a subroutine
+                0x000E => {},
+
+                _ => println!("NOP"),
+            },
+
+            // 0x1NNN => jump to address NNN
+            0x1000 => {},
+
+            // 0x2NNN => call subroutine at NNN
+            0x2000 => {},
+
+            // 0x3XNN => skip next instruction if register X == NN
+            0x3000 => {},
+
+            // 0x4XNN => skip next if reg X != NN
+            0x4000 => {},
+
+            // 0x5XY0 => skip next if reg X == reg Y
+            0x5000 => {},
+
+            // 0x6XNN => X = NN
+            0x6000 => {},
+
+            // 0x7XNN => X += NN
+            0x7000 => {},
+
+            0x8000 => match self.opcode & 0x000F {
+
+                // 0x8XY0 => X = Y
+                0x0000 => {},
+
+                // 0x8XY1 => X = X | Y
+                0x0001 => {},
+
+                // 0x8XY2 => X = X & Y
+                0x0002 => {},
+
+                // 0x8XY3 => X = X ^(bitwise xor) Y
+                0x0003 => {},
+
+                // 0x8XY4 => X += Y, set F to 1 if there is a carry, 0 if not
+                0x0004 => {},
+
+                // 0x8XY5 => X -= Y, set F to 0 if there is a borrow, 1 if not
+                0x0005 => {},
+
+                // 0x8XY6 => Store least significant bit of X in F, then X >>= 1
+                0x0006 => {},
+
+                // 0x8XY7 => X = X | Y
+                0x0007 => {},
+
+                // 0x8XYE => X = X & Y
+                0x000E => {},
+
+                _ => println!("NOP"),
+            },
+
+            _ => println!("NOP"),
+        }
     }
 }
 
