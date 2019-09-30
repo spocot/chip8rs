@@ -32,11 +32,11 @@ setlocal fml=1
 setlocal fdn=20
 setlocal fen
 silent! normal! zE
-let s:l = 150 - ((30 * winheight(0) + 24) / 48)
+let s:l = 177 - ((34 * winheight(0) + 24) / 48)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-150
+177
 normal! 0
 lcd ~/Documents/projects/chip8rs
 tabedit ~/Documents/projects/chip8rs/src/main.rs

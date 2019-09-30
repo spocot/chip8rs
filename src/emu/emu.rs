@@ -173,6 +173,63 @@ impl Chip8 {
             // See https://en.wikipedia.org/wiki/CHIP-8 for more info.
             0xD000 => {},
 
+            0xE000 => match self.opcode & 0x000F {
+
+                // 0xEX9E => Skips next instruction if the key stored in VX is pressed
+                0x000E => {},
+
+                // 0xEXA1 => Skips next instruction if the key stored in VX is NOT pressed
+                0x0001 => {},
+
+                _ => println!("NOP"),
+            },
+
+            0xF000 => match self.opcode & 0x000F {
+
+                // 0xFX33 => Take decimal representation of VX and store:
+                //           High Digit at index
+                //           Middle Digit at index+1
+                //           Low Digit at index+2
+                0x0003 => {},
+
+                0x0005 => match self.opcode & 0x00F0 {
+
+                    // 0xFX15 => Set delay timer to VX
+                    0x0010 => {},
+
+                    // 0xFX55 => Stores V0-VX(inclusive) in memory starting at index
+                    //           Offset increases by 1 for each value stored
+                    //           index remains unchanged
+                    0x0050 => {},
+
+                    // 0xFX65 => Moves values from memory into V0-VX(inclusive) starting at index
+                    //           Offset increases by 1 for each value loaded
+                    //           index remains unchanged
+                    //
+                    0x0060 => {},
+
+                    _ => println!("NOP"),
+                },
+
+                // 0xFX07 => Set VX to value of display timer
+                0x0007 => {},
+
+                // 0xFX18 => Set sound timer to VX
+                0x0008 => {},
+
+                // 0xFX29 => Sets index to the location of the sprite for the character in VX
+                //           Characters 0-F are represented by a 4x5 font
+                0x0009 => {},
+
+                // 0xFX0A => Block execution until a key press, then store value in VX
+                0x000A => {},
+
+                // 0xFX1E => Adds VX to index
+                0x000E => {},
+
+                _ => println!("NOP"),
+            },
+
             _ => println!("NOP"),
         }
     }
