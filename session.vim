@@ -10,7 +10,6 @@ set shortmess=aoO
 badd +1 src/emu/mod.rs
 badd +1 src/emu/emu.rs
 badd +1 src/main.rs
-badd +3 .gitignore
 argglobal
 %argdel
 set stal=2
@@ -66,7 +65,7 @@ normal! zt
 1
 normal! 0
 lcd ~/Documents/projects/chip8rs
-tabnext 2
+tabnext 1
 set stal=1
 if exists('s:wipebuf') && getbufvar(s:wipebuf, '&buftype') isnot# 'terminal'
   silent exe 'bwipe ' . s:wipebuf

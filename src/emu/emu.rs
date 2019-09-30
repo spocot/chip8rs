@@ -43,7 +43,7 @@ impl Chip8 {
         let mut c = Chip8 {
             opcode: 0x200, // pc starts here
             memory: [0; 4096],
-            registers: [0; 16],
+            registers: [0; 16], // V0 - VF
             index: 0,
             pc: 0,
             gfx: [0; 2048],
@@ -110,52 +110,68 @@ impl Chip8 {
             // 0x2NNN => call subroutine at NNN
             0x2000 => {},
 
-            // 0x3XNN => skip next instruction if register X == NN
+            // 0x3XNN => skip next instruction if register VX == NN
             0x3000 => {},
 
-            // 0x4XNN => skip next if reg X != NN
+            // 0x4XNN => skip next if VX != NN
             0x4000 => {},
 
-            // 0x5XY0 => skip next if reg X == reg Y
+            // 0x5XY0 => skip next if VX == reg Y
             0x5000 => {},
 
-            // 0x6XNN => X = NN
+            // 0x6XNN => VX = NN
             0x6000 => {},
 
-            // 0x7XNN => X += NN
+            // 0x7XNN => VX += NN
             0x7000 => {},
 
             0x8000 => match self.opcode & 0x000F {
 
-                // 0x8XY0 => X = Y
+                // 0x8XY0 => VX = VY
                 0x0000 => {},
 
-                // 0x8XY1 => X = X | Y
+                // 0x8XY1 => VX = VX | VY
                 0x0001 => {},
 
-                // 0x8XY2 => X = X & Y
+                // 0x8XY2 => VX = VX & VY
                 0x0002 => {},
 
-                // 0x8XY3 => X = X ^(bitwise xor) Y
+                // 0x8XY3 => VX = VX ^(bitwise xor) VY
                 0x0003 => {},
 
-                // 0x8XY4 => X += Y, set F to 1 if there is a carry, 0 if not
+                // 0x8XY4 => VX += VY, set VF to 1 if there is a carry, 0 if not
                 0x0004 => {},
 
-                // 0x8XY5 => X -= Y, set F to 0 if there is a borrow, 1 if not
+                // 0x8XY5 => VX -= VY, set VF to 0 if there is a borrow, 1 if not
                 0x0005 => {},
 
-                // 0x8XY6 => Store least significant bit of X in F, then X >>= 1
+                // 0x8XY6 => Store least significant bit of VX in VF, then VX >>= 1
                 0x0006 => {},
 
-                // 0x8XY7 => X = X | Y
+                // 0x8XY7 => VX = VY - VX, set VF to to 0 when borrow, 1 if not
                 0x0007 => {},
 
-                // 0x8XYE => X = X & Y
+                // 0x8XYE => VX = Store most significant bit of VX in VF, then VX <<= 1
                 0x000E => {},
 
                 _ => println!("NOP"),
             },
+
+            // 0x9XY0 => skips next instruction if VX != VY
+            0x9000 => {},
+
+            // 0xANNN => set index to NNN
+            0xA000 => {},
+
+            // 0xBNNN => set PC to V0 + NNN
+            0xB000 => {},
+
+            // 0xCXNN => set VX to some random number (0-255), R & NN
+            0xC000 => {},
+
+            // 0xDXYN => Draw sprite at (VX, VY) w/ width 8pixels and height N
+            // See https://en.wikipedia.org/wiki/CHIP-8 for more info.
+            0xD000 => {},
 
             _ => println!("NOP"),
         }
