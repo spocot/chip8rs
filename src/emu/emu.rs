@@ -231,8 +231,21 @@ impl Chip8 {
             },
 
             _ => println!("NOP"),
+        } // End of Opcode matching
+
+        // Update timers
+        if self.delay_timer > 0 {
+            self.delay_timer -= 1;
         }
-    }
+        if self.sound_timer > 0 {
+            if self.sound_timer == 1 {
+                // Make a beep
+                println!("BEEP");
+            }
+            self.sound_timer -= 1;
+        }
+
+    } // End of fn cycle()
 }
 
 impl fmt::Display for Chip8 {
