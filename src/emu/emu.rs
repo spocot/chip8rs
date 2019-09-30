@@ -25,7 +25,7 @@ pub struct Chip8 {
     registers: [u8; 16],
     index: u16, // Index register
     pc: usize, // Program counter
-    gfx: [u8; 2048], // Pixel values (64 x 32 screen)
+    pub gfx: [u8; 2048], // Pixel values (64 x 32 screen)
 
     // When set > zero, these timer registers will count down to zero
     // System buzzer should sound whenever either timer reaches zero
@@ -46,7 +46,7 @@ impl Chip8 {
             registers: [0; 16], // V0 - VF
             index: 0,
             pc: 0,
-            gfx: [0; 2048],
+            gfx: [1; 2048],
             delay_timer: 0,
             sound_timer: 0,
             stack: [0; 16],
@@ -85,6 +85,10 @@ impl Chip8 {
         self.sound_timer = 0;
 
         self.fontset_into_mem();
+    }
+
+    pub fn should_fill_pixel(&self, x: usize, y: usize) -> bool {
+        self.gfx[x + (y * 32)] == 1
     }
 
     pub fn cycle(&mut self) {
