@@ -91,7 +91,7 @@ impl Chip8 {
         self.gfx[x + (y * 32)] == 1
     }
 
-    pub fn cycle(&mut self) {
+    fn perform_opcode(&mut self) {
 
         // Get next opcode.
         self.opcode = (self.memory[self.pc] as u16) << 8 | self.memory[self.pc + 1] as u16;
@@ -236,6 +236,12 @@ impl Chip8 {
 
             _ => println!("NOP"),
         } // End of Opcode matching
+    }
+
+    pub fn cycle(&mut self) {
+
+        // Decode and perform the current opcode.
+        self.perform_opcode();
 
         // Update timers
         if self.delay_timer > 0 {
