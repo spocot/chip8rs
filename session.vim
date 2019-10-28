@@ -33,12 +33,12 @@ setlocal fml=1
 setlocal fdn=20
 setlocal fen
 silent! normal! zE
-let s:l = 91 - ((40 * winheight(0) + 24) / 48)
+let s:l = 76 - ((1 * winheight(0) + 24) / 48)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-91
-normal! 035|
+76
+normal! 0
 lcd ~/Documents/projects/chip8rs
 tabedit ~/Documents/projects/chip8rs/src/main.rs
 set splitbelow splitright
@@ -59,12 +59,12 @@ setlocal fml=1
 setlocal fdn=20
 setlocal fen
 silent! normal! zE
-let s:l = 52 - ((28 * winheight(0) + 24) / 48)
+let s:l = 80 - ((42 * winheight(0) + 24) / 48)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-52
-normal! 0
+80
+normal! 036|
 lcd ~/Documents/projects/chip8rs
 tabedit ~/Documents/projects/chip8rs/Cargo.toml
 set splitbelow splitright
@@ -85,14 +85,14 @@ setlocal fml=1
 setlocal fdn=20
 setlocal fen
 silent! normal! zE
-let s:l = 9 - ((8 * winheight(0) + 24) / 48)
+let s:l = 10 - ((9 * winheight(0) + 24) / 48)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-9
-normal! 015|
+10
+normal! 021|
 lcd ~/Documents/projects/chip8rs
-tabnext 2
+tabnext 1
 set stal=1
 if exists('s:wipebuf') && getbufvar(s:wipebuf, '&buftype') isnot# 'terminal'
   silent exe 'bwipe ' . s:wipebuf

@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 piston_window = "0.98.0"
 image = "0.21.3"
+fps_counter = "1.0.0"
