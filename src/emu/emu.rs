@@ -355,7 +355,15 @@ impl Chip8 {
                 0x0005 => match self.opcode & 0x00F0 {
 
                     // 0xFX15 => Set delay timer to VX
-                    0x0010 => {},
+                    0x0010 => {
+                        let x = self.get_nibble(2);
+
+                        self.delay_timer = x;
+
+                        self.pc += 2;
+
+                        println!("\tDelay Timer set to {}", x);
+                    },
 
                     // 0xFX55 => Stores V0-VX(inclusive) in memory starting at index
                     //           Offset increases by 1 for each value stored
@@ -375,7 +383,15 @@ impl Chip8 {
                 0x0007 => {},
 
                 // 0xFX18 => Set sound timer to VX
-                0x0008 => {},
+                0x0008 => {
+                    let x = self.get_nibble(2);
+
+                    self.sound_timer = x;
+
+                    self.pc += 2;
+
+                    println!("\tSound Timer set to {}", x);
+                },
 
                 // 0xFX29 => Sets index to the location of the sprite for the character in VX
                 //           Characters 0-F are represented by a 4x5 font
