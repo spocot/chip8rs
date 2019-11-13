@@ -22,9 +22,9 @@ const FONTSET: [u8; 80] = [
 pub struct Chip8 {
     opcode: u16, // Current opcode
     memory: [u8; 4096],
-    registers: [u8; 16],
+    registers: [u8; 16], // V0 - VF
     index: u16, // Index register
-    pc: usize, // Program counter
+    pc: u16, // Program counter
     pub gfx: [u8; 2048], // Pixel values (64 x 32 screen)
 
     // When set > zero, these timer registers will count down to zero
@@ -94,7 +94,7 @@ impl Chip8 {
     fn perform_opcode(&mut self) {
 
         // Get next opcode.
-        self.opcode = (self.memory[self.pc] as u16) << 8 | self.memory[self.pc + 1] as u16;
+        self.opcode = (self.memory[self.pc as usize] as u16) << 8 | self.memory[self.pc as usize + 1] as u16;
 
         // Decode opcode.
         match self.opcode & 0xF000 {
@@ -165,10 +165,16 @@ impl Chip8 {
             0x9000 => {},
 
             // 0xANNN => set index to NNN
-            0xA000 => {},
+            0xA000 => {
+                self.index = self.opcode & 0x0FFF;
+                self.pc += 2;
+            },
 
             // 0xBNNN => set PC to V0 + NNN
-            0xB000 => {},
+            0xB000 => {
+                let NNN = self.opcode & 0x0FFF;
+                self.pc = self.registers[0] as u16 + NNN;
+            },
 
             // 0xCXNN => set VX to some random number (0-255), R & NN
             0xC000 => {},
