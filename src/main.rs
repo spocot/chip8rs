@@ -39,7 +39,7 @@ fn main() {
     let mut fps_cnt = fps_counter::FPSCounter::new();
 
     // Initialize the chip8 emulator
-    let c8 = Chip8::new();
+    let mut c8 = Chip8::new();
     //draw_buf.put_pixel(0,0,im::Rgba([0,0,0,255]));
 
     while let Some(event) = window.next() {
@@ -81,7 +81,8 @@ fn main() {
         } // end renger_args
 
         if let Some(_) = event.update_args() {
-
+            println!("Update tick");
+            c8.cycle();
         } // end update_args
     }
 

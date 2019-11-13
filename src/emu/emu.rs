@@ -243,6 +243,9 @@ impl Chip8 {
         // Decode and perform the current opcode.
         self.perform_opcode();
 
+        let x = self.registers[0];
+        let y = self.registers[1];
+
         // Update timers
         if self.delay_timer > 0 {
             self.delay_timer -= 1;
