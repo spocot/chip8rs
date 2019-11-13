@@ -103,7 +103,16 @@ impl Chip8 {
         let shift = (i % 4) * 4;
         let mask = 0xF << shift;
 
-        return ((self.opcode & mask) >> shift) as u8;
+        ((self.opcode & mask) >> shift) as u8
+    }
+
+    fn get_byte(&self, upper: bool) -> u8 {
+        if upper {
+            let upper_byte = (self.opcode & 0xFF00) >> 8;
+            upper_byte as u8
+        } else {
+            (self.opcode & 0xFF) as u8
+        }
     }
 
     fn reg_dump(&mut self, end_index: u8) {
@@ -155,7 +164,9 @@ impl Chip8 {
             0x2000 => {},
 
             // 0x3XNN => skip next instruction if register VX == NN
-            0x3000 => {},
+            0x3000 => {
+                let x = self.get_nibble(2);
+            },
 
             // 0x4XNN => skip next if VX != NN
             0x4000 => {},
