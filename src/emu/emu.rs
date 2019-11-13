@@ -170,13 +170,52 @@ impl Chip8 {
                 },
 
                 // 0x8XY1 => VX = VX | VY
-                0x0001 => {},
+                0x0001 => {
+                    let x = self.get_nibble(2);
+                    let y = self.get_nibble(1);
+
+                    let xval = self.registers[x as usize];
+                    let yval = self.registers[y as usize];
+
+                    let result = xval | yval;
+                    self.registers[x as usize] = result;
+
+                    self.pc += 2;
+
+                    println!("\tV{}=V{}({:#X?}) | V{}({:#X?}) -> {:#X?}", x, x, xval, y, yval, result);
+                },
 
                 // 0x8XY2 => VX = VX & VY
-                0x0002 => {},
+                0x0002 => {
+                    let x = self.get_nibble(2);
+                    let y = self.get_nibble(1);
+
+                    let xval = self.registers[x as usize];
+                    let yval = self.registers[y as usize];
+
+                    let result = xval & yval;
+                    self.registers[x as usize] = result;
+
+                    self.pc += 2;
+
+                    println!("\tV{}=V{}({:#X?}) & V{}({:#X?}) -> {:#X?}", x, x, xval, y, yval, result);
+                },
 
                 // 0x8XY3 => VX = VX ^(bitwise xor) VY
-                0x0003 => {},
+                0x0003 => {
+                    let x = self.get_nibble(2);
+                    let y = self.get_nibble(1);
+
+                    let xval = self.registers[x as usize];
+                    let yval = self.registers[y as usize];
+
+                    let result = xval ^ yval;
+                    self.registers[x as usize] = result;
+
+                    self.pc += 2;
+
+                    println!("\tV{}=V{}({:#X?}) ^ V{}({:#X?}) -> {:#X?}", x, x, xval, y, yval, result);
+                },
 
                 // 0x8XY4 => VX += VY, set VF to 1 if there is a carry, 0 if not
                 0x0004 => {},
