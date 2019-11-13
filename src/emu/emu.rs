@@ -65,6 +65,10 @@ impl Chip8 {
         }
     }
 
+    fn clear_screen(&mut self) {
+        self.gfx.iter_mut().for_each(|x| *x = 0);
+    }
+
     pub fn init(&mut self) {
         // Chip8 program counter starts at 0x200
         self.pc = 0x200;
@@ -75,7 +79,7 @@ impl Chip8 {
         self.sp = 0;
 
         // Clear display, stack, registers, and memory.
-        self.gfx.iter_mut().for_each(|x| *x = 0);
+        self.clear_screen();
         self.stack.iter_mut().for_each(|x| *x = 0);
         self.registers.iter_mut().for_each(|x| *x = 0);
         self.memory.iter_mut().for_each(|x| *x = 0);
@@ -87,8 +91,19 @@ impl Chip8 {
         self.fontset_into_mem();
     }
 
+    pub fn load_mem(&mut self, src_mem: &[u8;4096]) {
+        self.memory.clone_from_slice(src_mem);
+    }
+
     pub fn should_fill_pixel(&self, x: usize, y: usize) -> bool {
         self.gfx[x + (y * 32)] == 1
+    }
+
+    fn get_nibble(&self, i: u8) -> u8 {
+        let shift = (i % 4) * 4;
+        let mask = 0xF << shift;
+
+        return ((self.opcode & mask) >> shift) as u8;
     }
 
     fn perform_opcode(&mut self) {
@@ -96,14 +111,23 @@ impl Chip8 {
         // Get next opcode.
         self.opcode = (self.memory[self.pc as usize] as u16) << 8 | self.memory[self.pc as usize + 1] as u16;
 
+        println!("PC: {}, opcode: <{:#X?}>", self.pc, self.opcode);
+
         // Decode opcode.
         match self.opcode & 0xF000 {
             0x0000 => match self.opcode & 0x000F {
                 // Clear Screen
-                0x0000 => {},
+                0x0000 => {
+                    self.clear_screen();
+                    self.pc += 2;
+
+                    println!("\tClearing screen.");
+                },
 
                 // Return from a subroutine
-                0x000E => {},
+                0x000E => {
+                    println!("\tReturning from subroutine.");
+                },
 
                 _ => println!("NOP"),
             },
@@ -132,7 +156,18 @@ impl Chip8 {
             0x8000 => match self.opcode & 0x000F {
 
                 // 0x8XY0 => VX = VY
-                0x0000 => {},
+                0x0000 => {
+                    let x = self.get_nibble(2);
+                    let y = self.get_nibble(1);
+
+                    let val = self.registers[y as usize];
+
+                    self.registers[x as usize] = val;
+
+                    self.pc += 2;
+
+                    println!("\tV{}=V{} ({:#X?})", x, y, val);
+                },
 
                 // 0x8XY1 => VX = VX | VY
                 0x0001 => {},
@@ -166,14 +201,19 @@ impl Chip8 {
 
             // 0xANNN => set index to NNN
             0xA000 => {
-                self.index = self.opcode & 0x0FFF;
+                let i = self.opcode & 0x0FFF;
+                self.index = i;
                 self.pc += 2;
+
+                println!("\tSetting I(index) to {}.", i);
             },
 
             // 0xBNNN => set PC to V0 + NNN
             0xB000 => {
-                let NNN = self.opcode & 0x0FFF;
-                self.pc = self.registers[0] as u16 + NNN;
+                let nnn = self.opcode & 0x0FFF;
+                self.pc = self.registers[0] as u16 + nnn;
+
+                println!("\tSetting PC to V0 ({:#?}) + {:X?} = ({:#?})", self.registers[0], nnn, self.pc);
             },
 
             // 0xCXNN => set VX to some random number (0-255), R & NN

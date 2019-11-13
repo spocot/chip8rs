@@ -18,6 +18,17 @@ const SCREEN_HEIGHT: u32 = HEIGHT * SCALING_FACTOR;
 
 fn main() {
 
+    println!("Loading memory into emulator...");
+
+    let mut m = [0;4096];
+
+    m[2] = 0x81;
+    m[3] = 0x30;
+
+    // Create a new chip8 emulator
+    let mut c8 = Chip8::new();
+    c8.load_mem(&m);
+
     // Create graphics display
     let mut window: PistonWindow = WindowSettings::new(
         "Chip8",
@@ -38,8 +49,6 @@ fn main() {
 
     let mut fps_cnt = fps_counter::FPSCounter::new();
 
-    // Initialize the chip8 emulator
-    let mut c8 = Chip8::new();
     //draw_buf.put_pixel(0,0,im::Rgba([0,0,0,255]));
 
     while let Some(event) = window.next() {
