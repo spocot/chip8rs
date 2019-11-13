@@ -218,19 +218,90 @@ impl Chip8 {
                 },
 
                 // 0x8XY4 => VX += VY, set VF to 1 if there is a carry, 0 if not
-                0x0004 => {},
+                0x0004 => {
+                    let x = self.get_nibble(2);
+                    let y = self.get_nibble(1);
+
+                    let xval = self.registers[x as usize];
+                    let yval = self.registers[y as usize];
+
+                    let result = xval + yval; // TODO: Handle carry
+                    self.registers[x as usize] = result;
+
+                    self.pc += 2;
+
+                    println!("\tV{}=V{}({:#X?}) + V{}({:#X?}) -> {:#X?}", x, x, xval, y, yval, result);
+                },
 
                 // 0x8XY5 => VX -= VY, set VF to 0 if there is a borrow, 1 if not
-                0x0005 => {},
+                0x0005 => {
+                    let x = self.get_nibble(2);
+                    let y = self.get_nibble(1);
+
+                    let xval = self.registers[x as usize];
+                    let yval = self.registers[y as usize];
+
+                    let result = xval - yval; // TODO: Handle borrow
+                    self.registers[x as usize] = result;
+
+                    self.pc += 2;
+
+                    println!("\tV{}=V{}({:#X?}) - V{}({:#X?}) -> {:#X?}", x, x, xval, y, yval, result);
+                },
 
                 // 0x8XY6 => Store least significant bit of VX in VF, then VX >>= 1
-                0x0006 => {},
+                0x0006 => {
+                    let x = self.get_nibble(2);
+
+                    let xval = self.registers[x as usize];
+
+                    let least_sig_bit = x & 0x1;
+                    let result = xval >> 1;
+
+                    self.registers[x as usize] = result;
+
+                    // Store least sig in VF
+                    self.registers[0xF] = least_sig_bit;
+
+                    self.pc += 2;
+
+                    println!("\tV{}=V{}({:#X?}) >> 1) -> {:#X?}", x, x, xval, result);
+                },
 
                 // 0x8XY7 => VX = VY - VX, set VF to to 0 when borrow, 1 if not
-                0x0007 => {},
+                0x0007 => {
+                    let x = self.get_nibble(2);
+                    let y = self.get_nibble(1);
+
+                    let xval = self.registers[x as usize];
+                    let yval = self.registers[y as usize];
+
+                    let result = yval - xval;
+                    self.registers[x as usize] = result;
+
+                    self.pc += 2;
+
+                    println!("\tV{}=V{}({:#X?}) - V{}({:#X?}) -> {:#X?}", x, y, yval, x, xval, result);
+                },
 
                 // 0x8XYE => VX = Store most significant bit of VX in VF, then VX <<= 1
-                0x000E => {},
+                0x000E => {
+                    let x = self.get_nibble(2);
+
+                    let xval = self.registers[x as usize];
+
+                    let most_sig_bit = (x & 0x80) >> 7;
+                    let result = (xval & 0x7F) << 1;
+
+                    self.registers[x as usize] = result;
+
+                    // Store most sig in VF
+                    self.registers[0xF] = most_sig_bit;
+
+                    self.pc += 2;
+
+                    println!("\tV{}=V{}({:#X?}) << 1) -> {:#X?}", x, x, xval, result);
+                },
 
                 _ => println!("NOP"),
             },
