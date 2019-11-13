@@ -106,6 +106,22 @@ impl Chip8 {
         return ((self.opcode & mask) >> shift) as u8;
     }
 
+    fn reg_dump(&mut self, end_index: u8) {
+        let mut offset = self.index;
+        for i in 0..(end_index+1) {
+            self.memory[offset as usize] = self.registers[i as usize];
+            offset += 1;
+        }
+    }
+
+    fn reg_load(&mut self, end_index: u8) {
+        let mut offset = self.index;
+        for i in 0..(end_index+1) {
+            self.registers[i as usize] = self.memory[offset as usize];
+            offset += 1;
+        }
+    }
+
     fn perform_opcode(&mut self) {
 
         // Get next opcode.
@@ -368,13 +384,27 @@ impl Chip8 {
                     // 0xFX55 => Stores V0-VX(inclusive) in memory starting at index
                     //           Offset increases by 1 for each value stored
                     //           index remains unchanged
-                    0x0050 => {},
+                    0x0050 => {
+                        let x = self.get_nibble(2);
+                        self.reg_dump(x);
+
+                        self.pc += 2;
+
+                        println!("\tStore V0-V{} in mem starting@<{:#X?}>", x, self.index);
+                    },
 
                     // 0xFX65 => Moves values from memory into V0-VX(inclusive) starting at index
                     //           Offset increases by 1 for each value loaded
                     //           index remains unchanged
                     //
-                    0x0060 => {},
+                    0x0060 => {
+                        let x = self.get_nibble(2);
+                        self.reg_load(x);
+
+                        self.pc += 2;
+
+                        println!("\tLoad from mem starting@<{:#X?}> into V0-V{}", self.index, x);
+                    },
 
                     _ => println!("NOP"),
                 },
