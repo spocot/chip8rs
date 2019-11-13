@@ -166,6 +166,13 @@ impl Chip8 {
             // 0x3XNN => skip next instruction if register VX == NN
             0x3000 => {
                 let x = self.get_nibble(2);
+                let nn = self.get_byte(false);
+
+                if self.registers[x as usize] == nn {
+                    self.pc += 4;
+                } else {
+                    self.pc += 2;
+                }
             },
 
             // 0x4XNN => skip next if VX != NN
