@@ -149,9 +149,11 @@ impl Chip8 {
                     println!("\tClearing screen.");
                 },
 
-                // Return from a subroutine
+                // 0x00EE => Return from a subroutine
                 0x000E => {
-                    // TODO: Implement this
+                    self.sp -= 1;
+                    self.pc = self.stack[self.sp as usize];
+
                     println!("\tReturning from subroutine.");
                 },
 
