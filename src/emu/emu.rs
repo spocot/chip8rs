@@ -188,8 +188,17 @@ impl Chip8 {
                 }
             },
 
-            // 0x5XY0 => skip next if VX == reg Y
-            0x5000 => {},
+            // 0x5XY0 => skip next if VX == VY
+            0x5000 => {
+                let x = self.get_nibble(2);
+                let y = self.get_nibble(1);
+
+                if self.registers[x as usize] == self.registers[y as usize] {
+                    self.pc += 4;
+                } else {
+                    self.pc += 2;
+                }
+            },
 
             // 0x6XNN => VX = NN
             0x6000 => {
