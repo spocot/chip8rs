@@ -159,7 +159,11 @@ impl Chip8 {
             },
 
             // 0x1NNN => jump to address NNN
-            0x1000 => {},
+            0x1000 => {
+                let nnn = self.opcode & 0x0FFF;
+
+                self.pc = nnn;
+            },
 
             // 0x2NNN => call subroutine at NNN
             0x2000 => {},
