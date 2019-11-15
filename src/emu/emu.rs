@@ -211,7 +211,14 @@ impl Chip8 {
             },
 
             // 0x7XNN => VX += NN
-            0x7000 => {},
+            0x7000 => {
+                let x = self.get_nibble(2);
+                let nn = self.get_byte(false);
+
+                self.registers[x as usize] += nn;
+
+                self.pc += 2;
+            },
 
             0x8000 => match self.opcode & 0x000F {
 
