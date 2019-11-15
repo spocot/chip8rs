@@ -470,7 +470,20 @@ impl Chip8 {
                 //           High Digit at index
                 //           Middle Digit at index+1
                 //           Low Digit at index+2
-                0x0003 => {},
+                0x0003 => {
+                    let x = self.get_nibble(2);
+                    let val = self.registers[x as usize];
+
+                    let high: u8 = val / 100;
+                    let mid: u8 = (val / 10) % 10;
+                    let lower: u8 = val % 10;
+
+                    self.memory[self.index as usize] = high;
+                    self.memory[self.index as usize + 1] = mid;
+                    self.memory[self.index as usize + 2] = lower;
+
+                    self.pc += 2;
+                },
 
                 0x0005 => match self.opcode & 0x00F0 {
 
