@@ -498,7 +498,13 @@ impl Chip8 {
                 0x000A => {},
 
                 // 0xFX1E => Adds VX to index
-                0x000E => {},
+                0x000E => {
+                    let x = self.get_nibble(2);
+
+                    self.index += self.registers[x as usize] as u16;
+
+                    self.pc += 2;
+                },
 
                 _ => println!("NOP"),
             },
