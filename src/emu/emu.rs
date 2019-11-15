@@ -156,6 +156,8 @@ impl Chip8 {
                     self.sp -= 1;
                     self.pc = self.stack[self.sp as usize];
 
+                    self.pc += 2;
+
                     println!("\tReturning from subroutine.");
                 },
 
