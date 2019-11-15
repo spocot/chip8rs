@@ -192,7 +192,14 @@ impl Chip8 {
             0x5000 => {},
 
             // 0x6XNN => VX = NN
-            0x6000 => {},
+            0x6000 => {
+                let x = self.get_nibble(2);
+                let nn = self.get_byte(false);
+
+                self.registers[x as usize] = nn;
+
+                self.pc += 2;
+            },
 
             // 0x7XNN => VX += NN
             0x7000 => {},
