@@ -1,5 +1,7 @@
 use std::fmt;
 
+use rand::Rng;
+
 const FONTSET: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -418,7 +420,16 @@ impl Chip8 {
             },
 
             // 0xCXNN => set VX to some random number (0-255), R & NN
-            0xC000 => {},
+            0xC000 => {
+                let x = self.get_nibble(2);
+                let nn = self.get_byte(false);
+
+                let r: u8 = rand::thread_rng().gen();
+
+                self.registers[x as usize] = r & nn;
+
+                self.pc += 2;
+            },
 
             // 0xDXYN => Draw sprite at (VX, VY) w/ width 8pixels and height N
             // See https://en.wikipedia.org/wiki/CHIP-8 for more info.
