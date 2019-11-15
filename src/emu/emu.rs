@@ -374,7 +374,16 @@ impl Chip8 {
             },
 
             // 0x9XY0 => skips next instruction if VX != VY
-            0x9000 => {},
+            0x9000 => {
+                let x = self.get_nibble(2);
+                let y = self.get_nibble(1);
+
+                if self.registers[x as usize] != self.registers[y as usize] {
+                    self.pc += 4;
+                } else {
+                    self.pc += 2;
+                }
+            },
 
             // 0xANNN => set index to NNN
             0xA000 => {
