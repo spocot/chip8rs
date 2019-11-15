@@ -166,7 +166,15 @@ impl Chip8 {
             },
 
             // 0x2NNN => call subroutine at NNN
-            0x2000 => {},
+            0x2000 => {
+                let nnn = self.opcode & 0x0FFF;
+
+                self.stack[self.sp as usize] = self.pc;
+
+                self.sp += 1;
+
+                self.pc = nnn;
+            },
 
             // 0x3XNN => skip next instruction if register VX == NN
             0x3000 => {
