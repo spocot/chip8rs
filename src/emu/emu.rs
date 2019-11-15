@@ -389,6 +389,7 @@ impl Chip8 {
             0xA000 => {
                 let i = self.opcode & 0x0FFF;
                 self.index = i;
+
                 self.pc += 2;
 
                 println!("\tSetting I(index) to {}.", i);
@@ -469,8 +470,14 @@ impl Chip8 {
                     _ => println!("NOP"),
                 },
 
-                // 0xFX07 => Set VX to value of display timer
-                0x0007 => {},
+                // 0xFX07 => Set VX to value of delay timer
+                0x0007 => {
+                    let x = self.get_nibble(2);
+
+                    self.registers[x as usize] = self.delay_timer;
+
+                    self.pc += 2;
+                },
 
                 // 0xFX18 => Set sound timer to VX
                 0x0008 => {
