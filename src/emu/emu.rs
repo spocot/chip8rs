@@ -37,7 +37,7 @@ pub struct Chip8 {
     stack: [u16; 16],
     sp: u16,
 
-    key: [u8; 16], // Current key state
+    keys: [u8; 16], // Current key state
 }
 
 impl Chip8 {
@@ -53,7 +53,7 @@ impl Chip8 {
             sound_timer: 0,
             stack: [0; 16],
             sp: 0,
-            key: [0; 16]
+            keys: [0; 16]
         };
 
         c.fontset_into_mem();
@@ -438,10 +438,28 @@ impl Chip8 {
             0xE000 => match self.opcode & 0x000F {
 
                 // 0xEX9E => Skips next instruction if the key stored in VX is pressed
-                0x000E => {},
+                0x000E => {
+                    let x = self.get_nibble(2);
+                    let key = self.registers[x as usize];
+
+                    if self.keys[key as usize] != 0 {
+                        self.pc += 4;
+                    } else {
+                        self.pc += 2;
+                    }
+                },
 
                 // 0xEXA1 => Skips next instruction if the key stored in VX is NOT pressed
-                0x0001 => {},
+                0x0001 => {
+                    let x = self.get_nibble(2);
+                    let key = self.registers[x as usize];
+
+                    if self.keys[key as usize] == 0 {
+                        self.pc += 4;
+                    } else {
+                        self.pc += 2;
+                    }
+                },
 
                 _ => println!("NOP"),
             },
