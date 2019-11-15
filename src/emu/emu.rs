@@ -151,6 +151,7 @@ impl Chip8 {
 
                 // Return from a subroutine
                 0x000E => {
+                    // TODO: Implement this
                     println!("\tReturning from subroutine.");
                 },
 
@@ -176,7 +177,16 @@ impl Chip8 {
             },
 
             // 0x4XNN => skip next if VX != NN
-            0x4000 => {},
+            0x4000 => {
+                let x = self.get_nibble(2);
+                let nn = self.get_byte(false);
+
+                if self.registers[x as usize] != nn {
+                    self.pc += 4;
+                } else {
+                    self.pc += 2;
+                }
+            },
 
             // 0x5XY0 => skip next if VX == reg Y
             0x5000 => {},
