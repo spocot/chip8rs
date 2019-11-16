@@ -580,10 +580,34 @@ impl Chip8 {
 
                 // 0xFX29 => Sets index to the location of the sprite for the character in VX
                 //           Characters 0-F are represented by a 4x5 font
-                0x0009 => {},
+                0x0009 => {
+                    let x = self.get_nibble(2);
+
+                    self.index = self.registers[x as usize] as u16 * 5;
+
+                    self.pc += 2;
+                },
 
                 // 0xFX0A => Block execution until a key press, then store value in VX
-                0x000A => {},
+                0x000A => {
+                    let x = self.get_nibble(2);
+
+                    let mut pressed = false;
+
+                    for k in 0..16 {
+                        if self.keys[k as usize] != 0 {
+                            self.registers[x as usize] = k;
+                            pressed = true;
+                        }
+                    }
+
+                    // Skip cycle if we didn't get a key press
+                    if !pressed {
+                        return;
+                    }
+
+                    self.pc += 2;
+                },
 
                 // 0xFX1E => Adds VX to index
                 0x000E => {
