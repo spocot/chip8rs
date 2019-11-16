@@ -435,7 +435,37 @@ impl Chip8 {
 
             // 0xDXYN => Draw sprite at (VX, VY) w/ width 8pixels and height N
             // See https://en.wikipedia.org/wiki/CHIP-8 for more info.
-            0xD000 => {},
+            0xD000 => {
+                let x = self.get_nibble(2) as u16;
+                let y = self.get_nibble(1) as u16;
+                let n = self.get_nibble(0) as u16;
+
+                // Reset VF
+                self.registers[0xF] = 0;
+
+                for dy in 0..n {
+                    let pixel = self.memory[(self.index + dy) as usize];
+
+                    for dx in 0..8 {
+                        let mask = 1 << (dx - 7);
+
+                        // If pixel bit is set in memory.
+                        if pixel & mask != 0 {
+
+                            let gfx_index = (((y + dy) * 64) + x + dx) as usize;
+
+                            // Check if pixel is set on screen.
+                            if self.gfx[gfx_index] == 1 {
+                                self.registers[0xF] = 1;
+                            }
+
+                            self.gfx[gfx_index] ^= 1;
+                        }
+                    }
+                }
+
+                self.pc += 2;
+            },
 
             0xE000 => match self.opcode & 0x000F {
 
