@@ -3,6 +3,7 @@ extern crate image as im;
 extern crate fps_counter;
 
 use piston_window::*;
+use piston_window::keyboard::Key;
 
 mod emu;
 use emu::Chip8;
@@ -18,6 +19,14 @@ const HEIGHT: u32 = 32;
 
 const SCREEN_WIDTH: u32 = WIDTH * SCALING_FACTOR;
 const SCREEN_HEIGHT: u32 = HEIGHT * SCALING_FACTOR;
+
+// Map keys to which key register will hold them (the array index).
+const KEYS: [Key; 16] = [
+    Key::D1, Key::D2, Key::D3, Key::D4,
+    Key::Q, Key::W, Key::E, Key::R,
+    Key::A, Key::S, Key::D, Key::F,
+    Key::Z, Key::X, Key::C, Key::V
+];
 
 fn main() {
 
@@ -84,9 +93,9 @@ fn main() {
                         for rx in dx..(dx + SCALING_FACTOR) {
                             draw_buf.put_pixel(rx, ry,
                                 if should_fill {
-                                    im::Rgba([0,0,0,255])
-                                } else {
                                     im::Rgba([1,1,1,255])
+                                } else {
+                                    im::Rgba([0,0,0,255])
                                 }
                             );
                         }
@@ -100,9 +109,27 @@ fn main() {
         } // end renger_args
 
         if let Some(_) = event.update_args() {
-            println!("Update tick");
             c8.cycle();
         } // end update_args
+
+        if let Some(button_args) = event.button_args() {
+
+            // Check if it was a key press.
+            if let Button::Keyboard(key) = button_args.button {
+
+                // Check if it's a key we care about.
+                if let Some(key_index) = KEYS.iter().position(|&x| x == key) {
+
+                    // Set/unset keystate based on press/release.
+                    if button_args.state == ButtonState::Press {
+                        c8.key_pressed(key_index);
+                    } else {
+                        c8.key_released(key_index);
+                    }
+                }
+            }
+
+        } // end button_args
     }
 
     println!("Exited...");

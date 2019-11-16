@@ -60,6 +60,14 @@ impl Chip8 {
         c
     }
 
+    pub fn key_pressed(&mut self, key_index: usize) {
+        self.keys[key_index] = 1;
+    }
+
+    pub fn key_released(&mut self, key_index: usize) {
+        self.keys[key_index] = 0;
+    }
+
     fn fontset_into_mem(&mut self) {
         // Load fontset into memory.
         for i in 0..80 {
@@ -240,7 +248,7 @@ impl Chip8 {
                 let x = self.get_nibble(2);
                 let nn = self.get_byte(false);
 
-                self.registers[x as usize] += nn;
+                self.registers[x as usize] = self.registers[x as usize].wrapping_add(nn);
 
                 self.pc += 2;
             },
