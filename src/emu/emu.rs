@@ -93,8 +93,15 @@ impl Chip8 {
         self.fontset_into_mem();
     }
 
-    pub fn load_mem(&mut self, src_mem: &[u8;4096]) {
-        self.memory.clone_from_slice(src_mem);
+    pub fn load_rom(&mut self, rom: &[u8;4096 - 0x200]) {
+        let mut mem = self.memory[..0x200].to_vec();
+        mem.extend_from_slice(rom);
+
+        self.memory.copy_from_slice(&mem);
+    }
+
+    pub fn set_mem(&mut self, src_mem: &[u8;4096]) {
+        self.memory.copy_from_slice(src_mem);
     }
 
     pub fn should_fill_pixel(&self, x: usize, y: usize) -> bool {

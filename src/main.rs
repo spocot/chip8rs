@@ -7,6 +7,9 @@ use piston_window::*;
 mod emu;
 use emu::Chip8;
 
+use std::fs::File;
+use std::io::Read;
+
 const SCALE: u32 = 2;
 const SCALING_FACTOR: u32 = SCALE * 4;
 
@@ -20,14 +23,21 @@ fn main() {
 
     println!("Loading memory into emulator...");
 
-    let mut m = [0;4096];
+    // Load game ROM into buffer.
+    let mut rom = [0;4096 - 0x200];
 
-    m[2] = 0x81;
-    m[3] = 0x30;
+    let mut rom_file = File::open("/home/spocot/Downloads/pong.c8").expect("File not found");
+
+    if let Ok(_) = rom_file.read(&mut rom) {
+        println!("ROM loaded!");
+    } else {
+        println!("[-] ROM couldn't be loaded.");
+        return;
+    }
 
     // Create a new chip8 emulator
     let mut c8 = Chip8::new();
-    c8.load_mem(&m);
+    c8.load_rom(&rom);
 
     // Create graphics display
     let mut window: PistonWindow = WindowSettings::new(
