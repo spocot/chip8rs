@@ -43,12 +43,12 @@ pub struct Chip8 {
 impl Chip8 {
     pub fn new() -> Chip8 {
         let mut c = Chip8 {
-            opcode: 0x200, // pc starts here
+            opcode: 0,
             memory: [0; 4096],
             registers: [0; 16], // V0 - VF
             index: 0,
-            pc: 0,
-            gfx: [1; 2048],
+            pc: 0x0200, // PC starts at 0x0200
+            gfx: [0; 2048],
             delay_timer: 0,
             sound_timer: 0,
             stack: [0; 16],
@@ -105,7 +105,7 @@ impl Chip8 {
     }
 
     pub fn should_fill_pixel(&self, x: usize, y: usize) -> bool {
-        self.gfx[x + (y * 32)] == 1
+        self.gfx[x + (y * 64)] == 1
     }
 
     fn get_nibble(&self, i: u8) -> u8 {
@@ -314,11 +314,14 @@ impl Chip8 {
                     let x = self.get_nibble(2);
                     let y = self.get_nibble(1);
 
-                    let xval = self.registers[x as usize];
-                    let yval = self.registers[y as usize];
+                    let xval = self.registers[x as usize] as u16;
+                    let yval = self.registers[y as usize] as u16;
 
-                    let result = xval + yval; // TODO: Handle carry
-                    self.registers[x as usize] = result;
+                    let result = xval + yval;
+                    self.registers[x as usize] = result as u8;
+
+                    // Set carry flag appropriately.
+                    self.registers[0xF] = if result > 0xFF { 1 } else { 0 };
 
                     self.pc += 2;
 
@@ -333,8 +336,11 @@ impl Chip8 {
                     let xval = self.registers[x as usize];
                     let yval = self.registers[y as usize];
 
-                    let result = xval - yval; // TODO: Handle borrow
+                    let result = xval.wrapping_sub(yval);
                     self.registers[x as usize] = result;
+
+                    // Set borrow flag appropriately.
+                    self.registers[0xF] = if yval > xval { 0 } else { 1 };
 
                     self.pc += 2;
 
@@ -368,8 +374,11 @@ impl Chip8 {
                     let xval = self.registers[x as usize];
                     let yval = self.registers[y as usize];
 
-                    let result = yval - xval;
+                    let result = yval.wrapping_sub(xval);
                     self.registers[x as usize] = result;
+
+                    // Set borrow flag appropriately.
+                    self.registers[0xF] = if xval > yval { 0 } else { 1 };
 
                     self.pc += 2;
 
@@ -454,7 +463,7 @@ impl Chip8 {
                     let pixel = self.memory[(self.index + dy) as usize];
 
                     for dx in 0..8 {
-                        let mask = 1 << (dx - 7);
+                        let mask = 1 << (7 - dx);
 
                         // If pixel bit is set in memory.
                         if pixel & mask != 0 {
