@@ -30,6 +30,8 @@ const KEYS: [Key; 16] = [
 
 fn main() {
 
+    let step_by_one = true;
+
     println!("Loading memory into emulator...");
 
     // Load game ROM into buffer.
@@ -72,13 +74,6 @@ fn main() {
 
     while let Some(event) = window.next() {
         if let Some(_) = event.render_args() {
-            texture.update(&mut texture_context, &draw_buf).unwrap();
-            window.draw_2d(&event, |context, graphics, device| {
-                texture_context.encoder.flush(device);
-                clear([1.0, 0.0, 1.0, 1.0], graphics);
-
-                image(&texture, context.transform, graphics);
-            });
 
             // Very gross looking way to draw pixels from c8 gfx
             // TODO: find more efficient way to do this?
@@ -103,13 +98,23 @@ fn main() {
                 }
             }
 
+            texture.update(&mut texture_context, &draw_buf).unwrap();
+            window.draw_2d(&event, |context, graphics, device| {
+                texture_context.encoder.flush(device);
+                clear([1.0, 0.0, 1.0, 1.0], graphics);
+
+                image(&texture, context.transform, graphics);
+            });
+
             let fps = fps_cnt.tick();
             let title = format!("Chip8-rs {}FPS", fps);
             window.set_title(title);
         } // end renger_args
 
         if let Some(_) = event.update_args() {
-            c8.cycle();
+            if !step_by_one {
+                c8.cycle();
+            }
         } // end update_args
 
         if let Some(button_args) = event.button_args() {
@@ -126,6 +131,8 @@ fn main() {
                     } else {
                         c8.key_released(key_index);
                     }
+                } else if key == Key::Return && step_by_one {
+                    c8.cycle();
                 }
             }
 
