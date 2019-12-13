@@ -449,6 +449,9 @@ impl Chip8 {
             // See https://en.wikipedia.org/wiki/CHIP-8 for more info.
             0xD000 => {
 
+                let xval = self.registers[x as usize];
+                let yval = self.registers[y as usize];
+
                 // Reset VF
                 self.registers[0xF] = 0;
 
@@ -461,7 +464,7 @@ impl Chip8 {
                         // If pixel bit is set in memory.
                         if pixel & mask != 0 {
 
-                            let gfx_index = ((x + dx) as usize, (y + dy) as usize);
+                            let gfx_index = ((xval + dx) as usize, (yval + dy) as usize);
 
                             let data = &mut (self.gfx[gfx_index.1][gfx_index.0]);
 
@@ -472,8 +475,8 @@ impl Chip8 {
 
                             *data = *data ^ 1;
 
-                            let locx = (x + dx) as u16;
-                            let locy = (y + dy) as u16;
+                            let locx = (xval + dx) as u16;
+                            let locy = (yval + dy) as u16;
                             self.draw_queue.push_back((locx, locy, *data));
                         }
                     }
@@ -481,7 +484,7 @@ impl Chip8 {
 
                 self.pc += 2;
 
-                println!("\tDraw sprite at ({},{}) with height {}", x, y, n);
+                println!("\tDraw sprite at (V{}({}),V{}({})) with height {}", x, xval, y, yval, n);
             },
 
             0xE000 => match self.opcode & 0x000F {
