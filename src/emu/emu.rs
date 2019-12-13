@@ -535,11 +535,12 @@ impl Chip8 {
 
                     // 0xFX15 => Set delay timer to VX
                     0x0010 => {
-                        self.delay_timer = x;
+                        let xval = self.registers[x as usize];
+                        self.delay_timer = xval;
 
                         self.pc += 2;
 
-                        println!("\tDelay Timer set to {}", x);
+                        println!("\tDelay Timer set to {}", xval);
                     },
 
                     // 0xFX55 => Stores V0-VX(inclusive) in memory starting at index
