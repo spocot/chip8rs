@@ -1,4 +1,5 @@
 use std::fmt;
+use std::collections::VecDeque;
 
 use rand::Rng;
 
@@ -27,7 +28,7 @@ pub struct Chip8 {
     registers: [u8; 16], // V0 - VF
     index: u16, // Index register
     pc: u16, // Program counter
-    pub gfx: [u8; 2048], // Pixel values (64 x 32 screen)
+    pub gfx: [[u8; 64]; 32], // Pixel values (64 x 32 screen)
 
     // When set > zero, these timer registers will count down to zero
     // System buzzer should sound whenever either timer reaches zero
@@ -38,6 +39,9 @@ pub struct Chip8 {
     sp: u16,
 
     keys: [u8; 16], // Current key state
+
+    pub redraw: bool, // Should gfx be completely redrawn?
+    pub draw_queue: VecDeque<(u16, u16, u8)>,
 }
 
 impl Chip8 {
@@ -48,12 +52,14 @@ impl Chip8 {
             registers: [0; 16], // V0 - VF
             index: 0,
             pc: 0x0200, // PC starts at 0x0200
-            gfx: [0; 2048],
+            gfx: [[0; 64]; 32],
             delay_timer: 0,
             sound_timer: 0,
             stack: [0; 16],
             sp: 0,
-            keys: [0; 16]
+            keys: [0; 16],
+            redraw: true,
+            draw_queue: VecDeque::new(),
         };
 
         c.fontset_into_mem();
@@ -76,7 +82,8 @@ impl Chip8 {
     }
 
     fn clear_screen(&mut self) {
-        self.gfx.iter_mut().for_each(|x| *x = 0);
+        self.gfx = [[0; 64]; 32];
+        self.redraw = true;
     }
 
     pub fn init(&mut self) {
@@ -99,6 +106,8 @@ impl Chip8 {
         self.sound_timer = 0;
 
         self.fontset_into_mem();
+
+        self.redraw = true;
     }
 
     pub fn load_rom(&mut self, rom: &[u8;4096 - 0x200]) {
@@ -113,7 +122,7 @@ impl Chip8 {
     }
 
     pub fn should_fill_pixel(&self, x: usize, y: usize) -> bool {
-        self.gfx[x + (y * 64)] == 1
+        self.gfx[y][x] == 1
     }
 
     fn get_nibble(&self, i: u8) -> u8 {
@@ -173,7 +182,7 @@ impl Chip8 {
 
                     self.pc += 2;
 
-                    println!("\tReturning from subroutine.");
+                    println!("\tReturning from subroutine, setting sp={} pc={}+2", self.sp, self.pc - 2);
                 },
 
                 _ => println!("NOP"),
@@ -184,6 +193,8 @@ impl Chip8 {
                 let nnn = self.opcode & 0x0FFF;
 
                 self.pc = nnn;
+
+                println!("\tJumping to address {}", nnn);
             },
 
             // 0x2NNN => call subroutine at NNN
@@ -471,19 +482,22 @@ impl Chip8 {
                     let pixel = self.memory[(self.index + dy) as usize];
 
                     for dx in 0..8 {
-                        let mask = 1 << (7 - dx);
+                        let mask = 0b10000000 >> dx;
 
                         // If pixel bit is set in memory.
                         if pixel & mask != 0 {
 
-                            let gfx_index = (((y + dy) * 64) + x + dx) as usize;
+                            let gfx_index = ((x + dx) as usize, (y + dy) as usize);
+
+                            let mut data = &mut (self.gfx[gfx_index.1][gfx_index.0]);
 
                             // Check if pixel is set on screen.
-                            if self.gfx[gfx_index] == 1 {
+                            if *data == 1 {
                                 self.registers[0xF] = 1;
                             }
 
-                            self.gfx[gfx_index] ^= 1;
+                            *data = *data ^ 1;
+                            self.draw_queue.push_back((x+dx, y+dy, *data));
                         }
                     }
                 }
@@ -650,6 +664,13 @@ impl Chip8 {
     }
 
     pub fn cycle(&mut self) {
+
+        //// Test that we can draw to screen in cycle method.
+        //self.gfx[self.opcode as usize] = 1;
+        //self.opcode += 1;
+        //self.to_draw_pixel = Some((self.opcode as u32, self.opcode as u32, true));
+
+        //return;
 
         // Decode and perform the current opcode.
         self.perform_opcode();
