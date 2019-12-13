@@ -132,15 +132,6 @@ impl Chip8 {
         ((self.opcode & mask) >> shift) as u8
     }
 
-    fn get_byte(&self, upper: bool) -> u8 {
-        if upper {
-            let upper_byte = (self.opcode & 0xFF00) >> 8;
-            upper_byte as u8
-        } else {
-            (self.opcode & 0xFF) as u8
-        }
-    }
-
     fn reg_dump(&mut self, end_index: u8) {
         let mut offset = self.index;
         for i in 0..(end_index+1) {
@@ -163,6 +154,14 @@ impl Chip8 {
         self.opcode = (self.memory[self.pc as usize] as u16) << 8 | self.memory[self.pc as usize + 1] as u16;
 
         println!("PC: {}, opcode: <{:#X?}>", self.pc, self.opcode);
+
+        // Store values that some opcodes need to use.
+        let x: u8 = self.get_nibble(2);
+        let y: u8 = self.get_nibble(1);
+        let n: u8 = (self.opcode & 0xF) as u8;
+        let nn: u8 = (self.opcode & 0xFF) as u8;
+        let nnn: u16 = self.opcode & 0xFFF;
+
 
         // Decode opcode.
         match self.opcode & 0xF000 {
@@ -190,8 +189,6 @@ impl Chip8 {
 
             // 0x1NNN => jump to address NNN
             0x1000 => {
-                let nnn = self.opcode & 0x0FFF;
-
                 self.pc = nnn;
 
                 println!("\tJumping to address {}", nnn);
@@ -199,78 +196,79 @@ impl Chip8 {
 
             // 0x2NNN => call subroutine at NNN
             0x2000 => {
-                let nnn = self.opcode & 0x0FFF;
-
                 self.stack[self.sp as usize] = self.pc;
 
                 self.sp += 1;
 
                 self.pc = nnn;
+
+                println!("\tCalling subroutine at {}", nnn);
             },
 
             // 0x3XNN => skip next instruction if register VX == NN
             0x3000 => {
-                let x = self.get_nibble(2);
-                let nn = self.get_byte(false);
-
-                if self.registers[x as usize] == nn {
+                let val = self.registers[x as usize];
+                if val == nn {
                     self.pc += 4;
                 } else {
                     self.pc += 2;
                 }
+
+                println!("\tSkip next if V{}({})=={}", x, val, nn);
             },
 
             // 0x4XNN => skip next if VX != NN
             0x4000 => {
-                let x = self.get_nibble(2);
-                let nn = self.get_byte(false);
-
-                if self.registers[x as usize] != nn {
+                let val = self.registers[x as usize];
+                if val != nn {
                     self.pc += 4;
                 } else {
                     self.pc += 2;
                 }
+
+                println!("\tSkip next if V{}({})!={}", x, val, nn);
             },
 
             // 0x5XY0 => skip next if VX == VY
             0x5000 => {
-                let x = self.get_nibble(2);
-                let y = self.get_nibble(1);
+                let valx = self.registers[x as usize];
+                let valy = self.registers[y as usize];
 
-                if self.registers[x as usize] == self.registers[y as usize] {
+                if valx == valy {
                     self.pc += 4;
                 } else {
                     self.pc += 2;
                 }
+
+                println!("\tSkip next if V{}({})==V{}({})", x, valx, y, valy);
             },
 
             // 0x6XNN => VX = NN
             0x6000 => {
-                let x = self.get_nibble(2);
-                let nn = self.get_byte(false);
-
                 self.registers[x as usize] = nn;
 
                 self.pc += 2;
+
+                println!("\tSet V{}={}", x, nn);
             },
 
             // 0x7XNN => VX += NN
             0x7000 => {
-                let x = self.get_nibble(2);
-                let nn = self.get_byte(false);
 
-                self.registers[x as usize] = self.registers[x as usize].wrapping_add(nn);
+                let val = &mut self.registers[x as usize];
+                let prev_val = *val;
+
+                *val = (*val).wrapping_add(nn);
 
                 self.pc += 2;
+
+                println!("\tV{}={} wrapadd {} = {}", x, prev_val, nn, *val);
             },
 
             0x8000 => match self.opcode & 0x000F {
 
                 // 0x8XY0 => VX = VY
                 0x0000 => {
-                    let x = self.get_nibble(2);
-                    let y = self.get_nibble(1);
-
                     let val = self.registers[y as usize];
 
                     self.registers[x as usize] = val;
@@ -282,9 +280,6 @@ impl Chip8 {
 
                 // 0x8XY1 => VX = VX | VY
                 0x0001 => {
-                    let x = self.get_nibble(2);
-                    let y = self.get_nibble(1);
-
                     let xval = self.registers[x as usize];
                     let yval = self.registers[y as usize];
 
@@ -298,9 +293,6 @@ impl Chip8 {
 
                 // 0x8XY2 => VX = VX & VY
                 0x0002 => {
-                    let x = self.get_nibble(2);
-                    let y = self.get_nibble(1);
-
                     let xval = self.registers[x as usize];
                     let yval = self.registers[y as usize];
 
@@ -314,9 +306,6 @@ impl Chip8 {
 
                 // 0x8XY3 => VX = VX ^(bitwise xor) VY
                 0x0003 => {
-                    let x = self.get_nibble(2);
-                    let y = self.get_nibble(1);
-
                     let xval = self.registers[x as usize];
                     let yval = self.registers[y as usize];
 
@@ -330,9 +319,6 @@ impl Chip8 {
 
                 // 0x8XY4 => VX += VY, set VF to 1 if there is a carry, 0 if not
                 0x0004 => {
-                    let x = self.get_nibble(2);
-                    let y = self.get_nibble(1);
-
                     let xval = self.registers[x as usize] as u16;
                     let yval = self.registers[y as usize] as u16;
 
@@ -349,9 +335,6 @@ impl Chip8 {
 
                 // 0x8XY5 => VX -= VY, set VF to 0 if there is a borrow, 1 if not
                 0x0005 => {
-                    let x = self.get_nibble(2);
-                    let y = self.get_nibble(1);
-
                     let xval = self.registers[x as usize];
                     let yval = self.registers[y as usize];
 
@@ -368,8 +351,6 @@ impl Chip8 {
 
                 // 0x8XY6 => Store least significant bit of VX in VF, then VX >>= 1
                 0x0006 => {
-                    let x = self.get_nibble(2);
-
                     let xval = self.registers[x as usize];
 
                     let least_sig_bit = x & 0x1;
@@ -387,9 +368,6 @@ impl Chip8 {
 
                 // 0x8XY7 => VX = VY - VX, set VF to to 0 when borrow, 1 if not
                 0x0007 => {
-                    let x = self.get_nibble(2);
-                    let y = self.get_nibble(1);
-
                     let xval = self.registers[x as usize];
                     let yval = self.registers[y as usize];
 
@@ -406,8 +384,6 @@ impl Chip8 {
 
                 // 0x8XYE => VX = Store most significant bit of VX in VF, then VX <<= 1
                 0x000E => {
-                    let x = self.get_nibble(2);
-
                     let xval = self.registers[x as usize];
 
                     let most_sig_bit = (x & 0x80) >> 7;
@@ -428,29 +404,29 @@ impl Chip8 {
 
             // 0x9XY0 => skips next instruction if VX != VY
             0x9000 => {
-                let x = self.get_nibble(2);
-                let y = self.get_nibble(1);
+                let xval = self.registers[x as usize];
+                let yval = self.registers[y as usize];
 
-                if self.registers[x as usize] != self.registers[y as usize] {
+                if xval != yval {
                     self.pc += 4;
                 } else {
                     self.pc += 2;
                 }
+
+                println!("\tSkip next if V{}({})!=V{}({})", x, xval, y, yval);
             },
 
             // 0xANNN => set index to NNN
             0xA000 => {
-                let i = self.opcode & 0x0FFF;
-                self.index = i;
+                self.index = nnn;
 
                 self.pc += 2;
 
-                println!("\tSetting I(index) to {}.", i);
+                println!("\tSetting I(index) to {}.", nnn);
             },
 
             // 0xBNNN => set PC to V0 + NNN
             0xB000 => {
-                let nnn = self.opcode & 0x0FFF;
                 self.pc = self.registers[0] as u16 + nnn;
 
                 println!("\tSetting PC to V0 ({:#?}) + {:X?} = ({:#?})", self.registers[0], nnn, self.pc);
@@ -458,28 +434,26 @@ impl Chip8 {
 
             // 0xCXNN => set VX to some random number (0-255), R & NN
             0xC000 => {
-                let x = self.get_nibble(2);
-                let nn = self.get_byte(false);
-
                 let r: u8 = rand::thread_rng().gen();
 
-                self.registers[x as usize] = r & nn;
+                let result = r & nn;
+
+                self.registers[x as usize] = result;
 
                 self.pc += 2;
+
+                println!("\tSet V{} to random# {}", x, result);
             },
 
             // 0xDXYN => Draw sprite at (VX, VY) w/ width 8pixels and height N
             // See https://en.wikipedia.org/wiki/CHIP-8 for more info.
             0xD000 => {
-                let x = self.get_nibble(2) as u16;
-                let y = self.get_nibble(1) as u16;
-                let n = self.get_nibble(0) as u16;
 
                 // Reset VF
                 self.registers[0xF] = 0;
 
                 for dy in 0..n {
-                    let pixel = self.memory[(self.index + dy) as usize];
+                    let pixel = self.memory[(self.index + dy as u16) as usize];
 
                     for dx in 0..8 {
                         let mask = 0b10000000 >> dx;
@@ -489,7 +463,7 @@ impl Chip8 {
 
                             let gfx_index = ((x + dx) as usize, (y + dy) as usize);
 
-                            let mut data = &mut (self.gfx[gfx_index.1][gfx_index.0]);
+                            let data = &mut (self.gfx[gfx_index.1][gfx_index.0]);
 
                             // Check if pixel is set on screen.
                             if *data == 1 {
@@ -497,19 +471,23 @@ impl Chip8 {
                             }
 
                             *data = *data ^ 1;
-                            self.draw_queue.push_back((x+dx, y+dy, *data));
+
+                            let locx = (x + dx) as u16;
+                            let locy = (y + dy) as u16;
+                            self.draw_queue.push_back((locx, locy, *data));
                         }
                     }
                 }
 
                 self.pc += 2;
+
+                println!("\tDraw sprite at ({},{}) with height {}", x, y, n);
             },
 
             0xE000 => match self.opcode & 0x000F {
 
                 // 0xEX9E => Skips next instruction if the key stored in VX is pressed
                 0x000E => {
-                    let x = self.get_nibble(2);
                     let key = self.registers[x as usize];
 
                     if self.keys[key as usize] != 0 {
@@ -521,7 +499,6 @@ impl Chip8 {
 
                 // 0xEXA1 => Skips next instruction if the key stored in VX is NOT pressed
                 0x0001 => {
-                    let x = self.get_nibble(2);
                     let key = self.registers[x as usize];
 
                     if self.keys[key as usize] == 0 {
@@ -541,7 +518,6 @@ impl Chip8 {
                 //           Middle Digit at index+1
                 //           Low Digit at index+2
                 0x0003 => {
-                    let x = self.get_nibble(2);
                     let val = self.registers[x as usize];
 
                     let high: u8 = val / 100;
@@ -559,8 +535,6 @@ impl Chip8 {
 
                     // 0xFX15 => Set delay timer to VX
                     0x0010 => {
-                        let x = self.get_nibble(2);
-
                         self.delay_timer = x;
 
                         self.pc += 2;
@@ -572,7 +546,6 @@ impl Chip8 {
                     //           Offset increases by 1 for each value stored
                     //           index remains unchanged
                     0x0050 => {
-                        let x = self.get_nibble(2);
                         self.reg_dump(x);
 
                         self.pc += 2;
@@ -585,7 +558,6 @@ impl Chip8 {
                     //           index remains unchanged
                     //
                     0x0060 => {
-                        let x = self.get_nibble(2);
                         self.reg_load(x);
 
                         self.pc += 2;
@@ -598,17 +570,15 @@ impl Chip8 {
 
                 // 0xFX07 => Set VX to value of delay timer
                 0x0007 => {
-                    let x = self.get_nibble(2);
-
                     self.registers[x as usize] = self.delay_timer;
 
                     self.pc += 2;
+
+                    println!("\tSet V{}={} (delay timer)", x, self.delay_timer);
                 },
 
                 // 0xFX18 => Set sound timer to VX
                 0x0008 => {
-                    let x = self.get_nibble(2);
-
                     self.sound_timer = x;
 
                     self.pc += 2;
@@ -619,17 +589,15 @@ impl Chip8 {
                 // 0xFX29 => Sets index to the location of the sprite for the character in VX
                 //           Characters 0-F are represented by a 4x5 font
                 0x0009 => {
-                    let x = self.get_nibble(2);
-
                     self.index = self.registers[x as usize] as u16 * 5;
 
                     self.pc += 2;
+
+                    println!("\tSet index to loc of sprite for character in V{} = {}", x, self.index);
                 },
 
                 // 0xFX0A => Block execution until a key press, then store value in VX
                 0x000A => {
-                    let x = self.get_nibble(2);
-
                     let mut pressed = false;
 
                     for k in 0..16 {
@@ -649,11 +617,12 @@ impl Chip8 {
 
                 // 0xFX1E => Adds VX to index
                 0x000E => {
-                    let x = self.get_nibble(2);
-
-                    self.index += self.registers[x as usize] as u16;
+                    let xval = self.registers[x as usize] as u16;
+                    self.index += xval;
 
                     self.pc += 2;
+
+                    println!("\tAdd V{}({}) to index = {}", x, xval, self.index);
                 },
 
                 _ => println!("NOP"),
@@ -665,18 +634,8 @@ impl Chip8 {
 
     pub fn cycle(&mut self) {
 
-        //// Test that we can draw to screen in cycle method.
-        //self.gfx[self.opcode as usize] = 1;
-        //self.opcode += 1;
-        //self.to_draw_pixel = Some((self.opcode as u32, self.opcode as u32, true));
-
-        //return;
-
         // Decode and perform the current opcode.
         self.perform_opcode();
-
-        let x = self.registers[0];
-        let y = self.registers[1];
 
         // Update timers
         if self.delay_timer > 0 {
