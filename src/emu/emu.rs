@@ -464,9 +464,15 @@ impl Chip8 {
                         // If pixel bit is set in memory.
                         if pixel & mask != 0 {
 
-                            let gfx_index = ((xval + dx) as usize, (yval + dy) as usize);
+                            let locx = (xval + dx) as u16;
+                            let locy = (yval + dy) as u16;
 
-                            let data = &mut (self.gfx[gfx_index.1][gfx_index.0]);
+                            if locx >= 64 || locy >= 32 {
+                                println!("\t\tWhile drawing sprite went out of bounds at ({}.{})", locx, locy);
+                                continue;
+                            }
+
+                            let data = &mut (self.gfx[locy as usize][locx as usize]);
 
                             // Check if pixel is set on screen.
                             if *data == 1 {
@@ -475,8 +481,6 @@ impl Chip8 {
 
                             *data = *data ^ 1;
 
-                            let locx = (xval + dx) as u16;
-                            let locy = (yval + dy) as u16;
                             self.draw_queue.push_back((locx, locy, *data));
                         }
                     }
