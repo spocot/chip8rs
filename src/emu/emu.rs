@@ -40,6 +40,8 @@ pub struct Chip8 {
 
     keys: [u8; 16], // Current key state
 
+    pub show_debug: bool, // Should I print helpful opcode messages?
+
     pub redraw: bool, // Should gfx be completely redrawn?
     pub draw_queue: VecDeque<(u16, u16, u8)>,
 }
@@ -58,7 +60,8 @@ impl Chip8 {
             stack: [0; 16],
             sp: 0,
             keys: [0; 16],
-            redraw: true,
+            show_debug: false,
+            redraw: false,
             draw_queue: VecDeque::new(),
         };
 
@@ -86,43 +89,11 @@ impl Chip8 {
         self.redraw = true;
     }
 
-    pub fn init(&mut self) {
-        // Chip8 program counter starts at 0x200
-        self.pc = 0x200;
-
-        // Reset opcode, index, and stack pointer.
-        self.opcode = 0;
-        self.index = 0;
-        self.sp = 0;
-
-        // Clear display, stack, registers, and memory.
-        self.clear_screen();
-        self.stack.iter_mut().for_each(|x| *x = 0);
-        self.registers.iter_mut().for_each(|x| *x = 0);
-        self.memory.iter_mut().for_each(|x| *x = 0);
-
-        // Reset timers
-        self.delay_timer = 0;
-        self.sound_timer = 0;
-
-        self.fontset_into_mem();
-
-        self.redraw = true;
-    }
-
     pub fn load_rom(&mut self, rom: &[u8;4096 - 0x200]) {
         let mut mem = self.memory[..0x200].to_vec();
         mem.extend_from_slice(rom);
 
         self.memory.copy_from_slice(&mem);
-    }
-
-    pub fn set_mem(&mut self, src_mem: &[u8;4096]) {
-        self.memory.copy_from_slice(src_mem);
-    }
-
-    pub fn should_fill_pixel(&self, x: usize, y: usize) -> bool {
-        self.gfx[y][x] == 1
     }
 
     fn get_nibble(&self, i: u8) -> u8 {
@@ -153,7 +124,9 @@ impl Chip8 {
         // Get next opcode.
         self.opcode = (self.memory[self.pc as usize] as u16) << 8 | self.memory[self.pc as usize + 1] as u16;
 
-        println!("PC: {}, opcode: <{:#X?}>", self.pc, self.opcode);
+        if self.show_debug {
+            println!("PC: {}, opcode: <{:#X?}>", self.pc, self.opcode);
+        }
 
         // Store values that some opcodes need to use.
         let x: u8 = self.get_nibble(2);
@@ -171,7 +144,9 @@ impl Chip8 {
                     self.clear_screen();
                     self.pc += 2;
 
-                    println!("\tClearing screen.");
+                    if self.show_debug {
+                        println!("\tClearing screen.");
+                    }
                 },
 
                 // 0x00EE => Return from a subroutine
@@ -181,7 +156,9 @@ impl Chip8 {
 
                     self.pc += 2;
 
-                    println!("\tReturning from subroutine, setting sp={} pc={}+2", self.sp, self.pc - 2);
+                    if self.show_debug {
+                        println!("\tReturning from subroutine, setting sp={} pc={}+2", self.sp, self.pc - 2);
+                    }
                 },
 
                 _ => println!("NOP"),
@@ -191,7 +168,9 @@ impl Chip8 {
             0x1000 => {
                 self.pc = nnn;
 
-                println!("\tJumping to address {}", nnn);
+                if self.show_debug {
+                    println!("\tJumping to address {}", nnn);
+                }
             },
 
             // 0x2NNN => call subroutine at NNN
@@ -202,7 +181,9 @@ impl Chip8 {
 
                 self.pc = nnn;
 
-                println!("\tCalling subroutine at {}", nnn);
+                if self.show_debug {
+                    println!("\tCalling subroutine at {}", nnn);
+                }
             },
 
             // 0x3XNN => skip next instruction if register VX == NN
@@ -214,7 +195,9 @@ impl Chip8 {
                     self.pc += 2;
                 }
 
-                println!("\tSkip next if V{}({})=={}", x, val, nn);
+                if self.show_debug {
+                    println!("\tSkip next if V{}({})=={}", x, val, nn);
+                }
             },
 
             // 0x4XNN => skip next if VX != NN
@@ -226,7 +209,9 @@ impl Chip8 {
                     self.pc += 2;
                 }
 
-                println!("\tSkip next if V{}({})!={}", x, val, nn);
+                if self.show_debug {
+                    println!("\tSkip next if V{}({})!={}", x, val, nn);
+                }
             },
 
             // 0x5XY0 => skip next if VX == VY
@@ -240,7 +225,9 @@ impl Chip8 {
                     self.pc += 2;
                 }
 
-                println!("\tSkip next if V{}({})==V{}({})", x, valx, y, valy);
+                if self.show_debug {
+                    println!("\tSkip next if V{}({})==V{}({})", x, valx, y, valy);
+                }
             },
 
             // 0x6XNN => VX = NN
@@ -249,7 +236,9 @@ impl Chip8 {
 
                 self.pc += 2;
 
-                println!("\tSet V{}={}", x, nn);
+                if self.show_debug {
+                    println!("\tSet V{}={}", x, nn);
+                }
             },
 
             // 0x7XNN => VX += NN
@@ -262,7 +251,9 @@ impl Chip8 {
 
                 self.pc += 2;
 
-                println!("\tV{}={} wrapadd {} = {}", x, prev_val, nn, *val);
+                if self.show_debug {
+                    println!("\tV{}={} wrapadd {} = {}", x, prev_val, nn, *val);
+                }
             },
 
             0x8000 => match self.opcode & 0x000F {
@@ -275,7 +266,9 @@ impl Chip8 {
 
                     self.pc += 2;
 
-                    println!("\tV{}=V{} ({:#X?})", x, y, val);
+                    if self.show_debug {
+                        println!("\tV{}=V{} ({:#X?})", x, y, val);
+                    }
                 },
 
                 // 0x8XY1 => VX = VX | VY
@@ -288,7 +281,9 @@ impl Chip8 {
 
                     self.pc += 2;
 
-                    println!("\tV{}=V{}({:#X?}) | V{}({:#X?}) -> {:#X?}", x, x, xval, y, yval, result);
+                    if self.show_debug {
+                        println!("\tV{}=V{}({:#X?}) | V{}({:#X?}) -> {:#X?}", x, x, xval, y, yval, result);
+                    }
                 },
 
                 // 0x8XY2 => VX = VX & VY
@@ -301,7 +296,9 @@ impl Chip8 {
 
                     self.pc += 2;
 
-                    println!("\tV{}=V{}({:#X?}) & V{}({:#X?}) -> {:#X?}", x, x, xval, y, yval, result);
+                    if self.show_debug {
+                        println!("\tV{}=V{}({:#X?}) & V{}({:#X?}) -> {:#X?}", x, x, xval, y, yval, result);
+                    }
                 },
 
                 // 0x8XY3 => VX = VX ^(bitwise xor) VY
@@ -314,7 +311,9 @@ impl Chip8 {
 
                     self.pc += 2;
 
-                    println!("\tV{}=V{}({:#X?}) ^ V{}({:#X?}) -> {:#X?}", x, x, xval, y, yval, result);
+                    if self.show_debug {
+                        println!("\tV{}=V{}({:#X?}) ^ V{}({:#X?}) -> {:#X?}", x, x, xval, y, yval, result);
+                    }
                 },
 
                 // 0x8XY4 => VX += VY, set VF to 1 if there is a carry, 0 if not
@@ -330,7 +329,9 @@ impl Chip8 {
 
                     self.pc += 2;
 
-                    println!("\tV{}=V{}({:#X?}) + V{}({:#X?}) -> {:#X?}", x, x, xval, y, yval, result);
+                    if self.show_debug {
+                        println!("\tV{}=V{}({:#X?}) + V{}({:#X?}) -> {:#X?}", x, x, xval, y, yval, result);
+                    }
                 },
 
                 // 0x8XY5 => VX -= VY, set VF to 0 if there is a borrow, 1 if not
@@ -346,7 +347,9 @@ impl Chip8 {
 
                     self.pc += 2;
 
-                    println!("\tV{}=V{}({:#X?}) - V{}({:#X?}) -> {:#X?}", x, x, xval, y, yval, result);
+                    if self.show_debug {
+                        println!("\tV{}=V{}({:#X?}) - V{}({:#X?}) -> {:#X?}", x, x, xval, y, yval, result);
+                    }
                 },
 
                 // 0x8XY6 => Store least significant bit of VX in VF, then VX >>= 1
@@ -363,7 +366,9 @@ impl Chip8 {
 
                     self.pc += 2;
 
-                    println!("\tV{}=V{}({:#X?}) >> 1) -> {:#X?}", x, x, xval, result);
+                    if self.show_debug {
+                        println!("\tV{}=V{}({:#X?}) >> 1) -> {:#X?}", x, x, xval, result);
+                    }
                 },
 
                 // 0x8XY7 => VX = VY - VX, set VF to to 0 when borrow, 1 if not
@@ -379,7 +384,9 @@ impl Chip8 {
 
                     self.pc += 2;
 
-                    println!("\tV{}=V{}({:#X?}) - V{}({:#X?}) -> {:#X?}", x, y, yval, x, xval, result);
+                    if self.show_debug {
+                        println!("\tV{}=V{}({:#X?}) - V{}({:#X?}) -> {:#X?}", x, y, yval, x, xval, result);
+                    }
                 },
 
                 // 0x8XYE => VX = Store most significant bit of VX in VF, then VX <<= 1
@@ -396,7 +403,9 @@ impl Chip8 {
 
                     self.pc += 2;
 
-                    println!("\tV{}=V{}({:#X?}) << 1) -> {:#X?}", x, x, xval, result);
+                    if self.show_debug {
+                        println!("\tV{}=V{}({:#X?}) << 1) -> {:#X?}", x, x, xval, result);
+                    }
                 },
 
                 _ => println!("NOP"),
@@ -413,7 +422,9 @@ impl Chip8 {
                     self.pc += 2;
                 }
 
-                println!("\tSkip next if V{}({})!=V{}({})", x, xval, y, yval);
+                if self.show_debug {
+                    println!("\tSkip next if V{}({})!=V{}({})", x, xval, y, yval);
+                }
             },
 
             // 0xANNN => set index to NNN
@@ -422,14 +433,18 @@ impl Chip8 {
 
                 self.pc += 2;
 
-                println!("\tSetting I(index) to {}.", nnn);
+                if self.show_debug {
+                    println!("\tSetting I(index) to {}.", nnn);
+                }
             },
 
             // 0xBNNN => set PC to V0 + NNN
             0xB000 => {
                 self.pc = self.registers[0] as u16 + nnn;
 
-                println!("\tSetting PC to V0 ({:#?}) + {:X?} = ({:#?})", self.registers[0], nnn, self.pc);
+                if self.show_debug {
+                    println!("\tSetting PC to V0 ({:#?}) + {:X?} = ({:#?})", self.registers[0], nnn, self.pc);
+                }
             },
 
             // 0xCXNN => set VX to some random number (0-255), R & NN
@@ -442,7 +457,9 @@ impl Chip8 {
 
                 self.pc += 2;
 
-                println!("\tSet V{} to random# {}", x, result);
+                if self.show_debug {
+                    println!("\tSet V{} to random# {}", x, result);
+                }
             },
 
             // 0xDXYN => Draw sprite at (VX, VY) w/ width 8pixels and height N
@@ -468,7 +485,9 @@ impl Chip8 {
                             let locy = (yval + dy) as u16;
 
                             if locx >= 64 || locy >= 32 {
-                                println!("\t\tWhile drawing sprite went out of bounds at ({}.{})", locx, locy);
+                                if self.show_debug {
+                                    println!("\t\tWhile drawing sprite went out of bounds at ({}.{})", locx, locy);
+                                }
                                 continue;
                             }
 
@@ -488,7 +507,9 @@ impl Chip8 {
 
                 self.pc += 2;
 
-                println!("\tDraw sprite at (V{}({}),V{}({})) with height {}", x, xval, y, yval, n);
+                if self.show_debug {
+                    println!("\tDraw sprite at (V{}({}),V{}({})) with height {}", x, xval, y, yval, n);
+                }
             },
 
             0xE000 => match self.opcode & 0x000F {
@@ -547,7 +568,9 @@ impl Chip8 {
 
                         self.pc += 2;
 
-                        println!("\tDelay Timer set to {}", xval);
+                        if self.show_debug {
+                            println!("\tDelay Timer set to {}", xval);
+                        }
                     },
 
                     // 0xFX55 => Stores V0-VX(inclusive) in memory starting at index
@@ -558,7 +581,9 @@ impl Chip8 {
 
                         self.pc += 2;
 
-                        println!("\tStore V0-V{} in mem starting@<{:#X?}>", x, self.index);
+                        if self.show_debug {
+                            println!("\tStore V0-V{} in mem starting@<{:#X?}>", x, self.index);
+                        }
                     },
 
                     // 0xFX65 => Moves values from memory into V0-VX(inclusive) starting at index
@@ -570,7 +595,9 @@ impl Chip8 {
 
                         self.pc += 2;
 
-                        println!("\tLoad from mem starting@<{:#X?}> into V0-V{}", self.index, x);
+                        if self.show_debug {
+                            println!("\tLoad from mem starting@<{:#X?}> into V0-V{}", self.index, x);
+                        }
                     },
 
                     _ => println!("NOP"),
@@ -582,7 +609,9 @@ impl Chip8 {
 
                     self.pc += 2;
 
-                    println!("\tSet V{}={} (delay timer)", x, self.delay_timer);
+                    if self.show_debug {
+                        println!("\tSet V{}={} (delay timer)", x, self.delay_timer);
+                    }
                 },
 
                 // 0xFX18 => Set sound timer to VX
@@ -593,7 +622,9 @@ impl Chip8 {
 
                     self.pc += 2;
 
-                    println!("\tSound Timer set to {}", xval);
+                    if self.show_debug {
+                        println!("\tSound Timer set to {}", xval);
+                    }
                 },
 
                 // 0xFX29 => Sets index to the location of the sprite for the character in VX
@@ -603,7 +634,9 @@ impl Chip8 {
 
                     self.pc += 2;
 
-                    println!("\tSet index to loc of sprite for character in V{} = {}", x, self.index);
+                    if self.show_debug {
+                        println!("\tSet index to loc of sprite for character in V{} = {}", x, self.index);
+                    }
                 },
 
                 // 0xFX0A => Block execution until a key press, then store value in VX
@@ -632,7 +665,9 @@ impl Chip8 {
 
                     self.pc += 2;
 
-                    println!("\tAdd V{}({}) to index = {}", x, xval, self.index);
+                    if self.show_debug {
+                        println!("\tAdd V{}({}) to index = {}", x, xval, self.index);
+                    }
                 },
 
                 _ => println!("NOP"),

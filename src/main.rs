@@ -21,7 +21,8 @@ const HEIGHT: u32 = 32;
 const SCREEN_WIDTH: u32 = WIDTH * SCALING_FACTOR;
 const SCREEN_HEIGHT: u32 = HEIGHT * SCALING_FACTOR;
 
-const STEP_BY_ONE: bool = true;
+const STEP_BY_ONE: bool = false;
+const DEBUG_MSG: bool = false;
 
 // Map keys to which key register will hold them (the array index).
 const KEYS: [Key; 16] = [
@@ -33,12 +34,36 @@ const KEYS: [Key; 16] = [
 
 fn main() {
 
-    // Check that we were given a rom to load.
+    let mut should_step = STEP_BY_ONE;
+    let mut should_debug = DEBUG_MSG;
+
     let args: Vec<String> = env::args().collect();
-    if args.len() != 2 {
-        println!("Usage: {} <romfile>", &args[0]);
+    if args.len() < 2 || args.len() > 4 {
+        // Weird number of command line args.
+        println!("Usage: {} <romfile> [stepbyone=1|0] [debug=1|0]", &args[0]);
         return;
     }
+
+    if args.len() > 2 {
+        if let Ok(by_one) = (&args[2]).parse::<bool>() {
+            should_step = by_one;
+        } else {
+            // We weren't given a bool show usage and return.
+            println!("Usage: {} <romfile> [stepbyone=1|0] [debug=1|0]", &args[0]);
+            return;
+        }
+    }
+
+    if args.len() == 3 {
+        if let Ok(debug_msg) = (&args[3]).parse::<bool>() {
+            should_debug = debug_msg;
+        } else {
+            // We weren't given a bool show usage and return.
+            println!("Usage: {} <romfile> [stepbyone=1|0] [debug=1|0]", &args[0]);
+            return;
+        }
+    }
+
 
     println!("Loading memory into emulator...");
 
@@ -76,9 +101,8 @@ fn main() {
 
     // Create a new chip8 emulator
     let mut c8 = Chip8::new();
+    c8.show_debug = should_debug;
     c8.load_rom(&rom);
-
-    //draw_buf.put_pixel(0,0,im::Rgba([0,0,0,255]));
 
     while let Some(event) = window.next() {
         if let Some(_) = event.render_args() {
@@ -86,7 +110,7 @@ fn main() {
             texture.update(&mut texture_context, &draw_buf).unwrap();
             window.draw_2d(&event, |context, graphics, device| {
                 texture_context.encoder.flush(device);
-                clear([1.0, 0.0, 1.0, 1.0], graphics);
+                clear([0.0, 0.0, 0.0, 1.0], graphics);
 
                 image(&texture, context.transform, graphics);
             });
@@ -97,7 +121,7 @@ fn main() {
         } // end renger_args
 
         if let Some(_) = event.update_args() {
-            if !STEP_BY_ONE {
+            if !should_step {
                 c8.cycle();
             }
         } // end update_args
@@ -116,39 +140,19 @@ fn main() {
                     } else {
                         c8.key_released(key_index);
                     }
-                } else if key == Key::Return && STEP_BY_ONE {
+                } else if key == Key::Return && should_step {
                     c8.cycle();
                 }
             }
 
         } // end button_args
 
-        // Very gross looking way to draw pixels from c8 gfx
-        // TODO: find more efficient way to do this?
         if c8.redraw {
-            for y in 0..HEIGHT {
-                for x in 0..WIDTH {
-                    let dx = x * SCALING_FACTOR;
-                    let dy = y * SCALING_FACTOR;
-
-                    let should_fill = c8.should_fill_pixel(x as usize, y as usize);
-
-                    for ry in dy..(dy + SCALING_FACTOR) {
-                        for rx in dx..(dx + SCALING_FACTOR) {
-                            println!("Putting ({}, {})", rx, ry);
-                            draw_buf.put_pixel(rx, ry,
-                                if should_fill {
-                                    im::Rgba([255,255,255,255])
-                                } else {
-                                    im::Rgba([0,0,0,255])
-                                }
-                            );
-                        }
-                    }
-                }
-            }
+            draw_buf = im::ImageBuffer::new(SCREEN_WIDTH, SCREEN_HEIGHT);
             c8.redraw = false;
         }
+
+        // Draw pixels from queue
         while !c8.draw_queue.is_empty() {
 
             if let Some((x, y, to_draw)) = c8.draw_queue.pop_front() {
@@ -169,14 +173,14 @@ fn main() {
                 }
             }
             /*if let Some((x, y, val)) = c8.draw_queue.pop_front() {
-                draw_buf.put_pixel(x as u32, y as u32,
-                    if val == 0 {
-                        im::Rgba([0,0,0,255])
-                    } else {
-                        im::Rgba([255,255,255,255])
-                    }
-                );
-            }*/
+              draw_buf.put_pixel(x as u32, y as u32,
+              if val == 0 {
+              im::Rgba([0,0,0,255])
+              } else {
+              im::Rgba([255,255,255,255])
+              }
+              );
+              }*/
         }
     }
 
