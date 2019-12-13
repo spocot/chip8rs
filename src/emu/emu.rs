@@ -579,11 +579,13 @@ impl Chip8 {
 
                 // 0xFX18 => Set sound timer to VX
                 0x0008 => {
-                    self.sound_timer = x;
+                    let xval = self.registers[x as usize];
+
+                    self.sound_timer = xval;
 
                     self.pc += 2;
 
-                    println!("\tSound Timer set to {}", x);
+                    println!("\tSound Timer set to {}", xval);
                 },
 
                 // 0xFX29 => Sets index to the location of the sprite for the character in VX
